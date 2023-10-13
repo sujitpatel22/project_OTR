@@ -1,14 +1,15 @@
 from tensorflow.keras.models import load_model
+import cv2
 import numpy as np
 import pygame
 from PIL import Image, ImageDraw
 import sys
 
-# if len(sys.argv) != 2:
-#     raise Exception("Error: missing model instance!")
-#     # sys.exit(1)
+if len(sys.argv) != 2:
+    raise Exception("Error: missing model instance!")
+    # sys.exit(1)
 
-# model = load_model(sys.argv[1])
+model = load_model(sys.argv[1])
 
 def main():
     pygame.init()
@@ -34,15 +35,15 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 drawing = False
             elif event.type == pygame.MOUSEMOTION and drawing:
-                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 20)
+                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 50)
                 last_pos = event.pos
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     pygame.image.save(screen, "sample.png")
-                    # img = Image.open("sample.png")
+                    img = cv2.imread("sample.png")
 
-                    # word = recogniser(img)
-                    # print(word)
+                    word = recogniser(img)
+                    print(word)
 
                 elif event.key == pygame.K_BACKSPACE:
                     canvas.fill((255, 255, 255))
@@ -54,7 +55,14 @@ def main():
 
 
 def recogniser(img):
+    img = cv2.resize(img, (28, 28))
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img = np.expand_dims(img, axis=-1)
+    img = img / 255.0
+    print(img.shape)
     img = np.array(img).reshape(1, 28, 28, 1)
+    # sys.exit()
+
     predicted_label = model.predict(img).argmax()
     predicted_character = chr(predicted_label)
     return predicted_character
