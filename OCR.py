@@ -5,11 +5,27 @@ import pygame
 from PIL import Image, ImageDraw
 import sys
 
+IMG_WIDTH = 28
+IMG_HEIGHT = 28
+
 if len(sys.argv) != 2:
     raise Exception("Error: missing model instance!")
     # sys.exit(1)
 
 model = load_model(sys.argv[1])
+
+def recogniser(img):
+    img = cv2.resize(img, (IMG_WIDTH, IMG_HEIGHT))
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    cv2.imwrite("sen.png", img)
+    img = np.expand_dims(img, axis=-1)
+    img = img / 255.0
+    img = np.array(img).reshape(1, 28, 28, 1)
+    # sys.exit()
+
+    predicted_label = model.predict(img).argmax()
+    predicted_character = chr(predicted_label)
+    return predicted_character
 
 def main():
     pygame.init()
@@ -35,12 +51,12 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 drawing = False
             elif event.type == pygame.MOUSEMOTION and drawing:
-                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 50)
+                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 40)
                 last_pos = event.pos
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     pygame.image.save(screen, "sample.png")
-                    img = cv2.imread("sample.png")
+                    img = cv2.imread("sample9.png")
 
                     word = recogniser(img)
                     print(word)
@@ -52,20 +68,6 @@ def main():
 
         screen.blit(canvas, (0, 0))
         pygame.display.update()
-
-
-def recogniser(img):
-    img = cv2.resize(img, (28, 28))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img = np.expand_dims(img, axis=-1)
-    img = img / 255.0
-    print(img.shape)
-    img = np.array(img).reshape(1, 28, 28, 1)
-    # sys.exit()
-
-    predicted_label = model.predict(img).argmax()
-    predicted_character = chr(predicted_label)
-    return predicted_character
 
 
 if __name__ == "__main__":

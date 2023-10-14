@@ -7,15 +7,13 @@ import sys
 
 IMG_WIDTH = 28
 IMG_HEIGHT = 28
-EPOCHS = 5
+EPOCHS = 10
 
 def main():
     data_dir = sys.argv[1]
 
     X_train, Y_train, X_test, Y_test = get_train_test_data(data_dir)
     print("done loading dataset!")
-    print(np.unique(Y_train))
-    # sys.exit()
 
     model = build_model()
     model = compile_model(model)
@@ -29,18 +27,20 @@ def main():
 
 def build_model():
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(32, (3,3), activation = "relu", input_shape = (IMG_WIDTH, IMG_HEIGHT, 1)),
+        tf.keras.layers.Conv2D(64, (3,3), activation = "relu", input_shape = (IMG_WIDTH, IMG_HEIGHT, 1)),
         tf.keras.layers.MaxPooling2D(pool_size = (2,2)),
-        # tf.keras.layers.Conv2D(32, (3,3), activation = "relu", input_shape = (IMG_WIDTH, IMG_HEIGHT, 1)),
+        # tf.keras.layers.Conv2D(64, (3,3), activation = "relu", input_shape = (IMG_WIDTH, IMG_HEIGHT, 1)),
         # tf.keras.layers.MaxPooling2D(pool_size = (2,2)),
 
         tf.keras.layers.Flatten(),
 
-        tf.keras.layers.Dense(116, activation = "relu"),
+        tf.keras.layers.Dense(246, activation = "relu"),
+        tf.keras.layers.Dense(246, activation = "relu"),
+        # tf.keras.layers.Dense(273, activation = "relu"),
 
         tf.keras.layers.Dropout(0.5),
 
-        tf.keras.layers.Dense(58, activation = "softmax")
+        tf.keras.layers.Dense(123, activation = "softmax")
     ])
     return model
 
@@ -58,7 +58,7 @@ def get_train_test_data(data_dir):
     images, labels = load_nist_data(data_dir)
 
     labels = tf.keras.utils.to_categorical(labels)
-    print(len(labels))
+    # print(len(labels))
     X_train, X_test, Y_train, Y_test = train_test_split(images, labels, test_size = 0.38)
 
     X_train, X_test = X_train / 255.0, X_test / 255.0
@@ -71,7 +71,7 @@ def get_train_test_data(data_dir):
 def load_nist_data(data_dir):
     images = []
     labels = []
-    for category in range(48, 58, 1):
+    for category in range(97, 123, 1):
         for hsf in os.listdir(os.path.join(data_dir, str(category))):
             filenames = os.listdir(os.path.join(data_dir, str(category), hsf))
             for filename in filenames:
