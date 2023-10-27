@@ -5,8 +5,8 @@ import pygame
 from PIL import Image, ImageDraw
 import sys
 
-IMG_WIDTH = 28
-IMG_HEIGHT = 28
+IMG_WIDTH = 168
+IMG_HEIGHT = 32
 model = None
 
 def load_model():
