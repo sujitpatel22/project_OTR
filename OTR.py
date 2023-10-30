@@ -1,35 +1,35 @@
 from tensorflow.keras.models import load_model
+from CRNN_engine2 import ModelGenerator
 import cv2
 import numpy as np
 import pygame
 from PIL import Image, ImageDraw
 import sys
 
-IMG_WIDTH = 168
-IMG_HEIGHT = 32
-model = None
+IMG_HEIGHT = 40
+IMG_WIDTH = 170
 
-def load_model():
+def fetch_model():
+    MG = ModelGenerator(170, 32, 37, 20)
     model = load_model(sys.argv[1])
+    # model = MG.compile(model = model)
+    model.load_weights(sys.argv[2])
+    return model
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         raise Exception("Error: missing model instance!")
 
-    load_model()
-    # load_canvas()
-
-    img = cv2.imread("sample.png", cv2.IMREAD_GRAYSCALE)
-    word = recogniser(img)
-    print(word)
+    model = fetch_model()
+    load_canvas(model)
 
 
-def load_canvas():
+def load_canvas(model):
     pygame.init()
 
     width, height = 1024, 800
     screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("OCR canvas")
+    pygame.display.set_caption("OTR canvas")
 
     canvas = pygame.Surface((width, height))
     canvas.fill((255, 255, 255))
@@ -48,13 +48,13 @@ def load_canvas():
             elif event.type == pygame.MOUSEBUTTONUP:
                 drawing = False
             elif event.type == pygame.MOUSEMOTION and drawing:
-                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 40)
+                pygame.draw.line(canvas, (0,0,0), last_pos, event.pos, 15)
                 last_pos = event.pos
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    # pygame.image.save(screen, "sample.png")
-                    img = cv2.imread("sample.png", cv2.IMREAD_GRAYSCALE)
-                    word = recogniser(img)
+                    pygame.image.save(screen, "sample.jpg")
+                    img = cv2.imread("sample.jpg", cv2.IMREAD_GRAYSCALE)
+                    word = recogniser(model, img)
                     print(word)
 
                 elif event.key == pygame.K_BACKSPACE:
@@ -66,17 +66,29 @@ def load_canvas():
         pygame.display.update()
 
 
-def recogniser(img):
+def recogniser(model, img):
     img = get_cropped(img)
-    img = cv2.resize(img, (IMG_WIDTH, IMG_HEIGHT))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img = np.expand_dims(img, axis=-1)
+    img = resize(img)
+    cv2.imwrite("resized_img.jpg", img)
+    img = np.expand_dims(img, axis = -1)
+    img = np.expand_dims(img, axis = 0)
     img = img / 255.0
-    img = np.array(img).reshape(1, 28, 28, 1)
 
-    predicted_label = model.predict(img).argmax()
-    predicted_character = chr(predicted_label)
-    return predicted_character
+    predicted_label = model.predict(img)
+    predicted_label = ModelGenerator.convert_label(pred_label = predicted_label)
+    predicted_label = ModelGenerator.decode_label(label = predicted_label)
+    return predicted_label
+
+def resize(image):
+    scale_x = IMG_WIDTH / image.shape[1]
+    scale_y = IMG_HEIGHT / image.shape[0]
+    scale = min(scale_x, scale_y)
+    image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    pad_x = max(0, (IMG_WIDTH - image.shape[1]) // 2)
+    pad_y = max(0, (IMG_HEIGHT - image.shape[0]) // 2)
+    image = cv2.copyMakeBorder(image, pad_y, IMG_HEIGHT - image.shape[0] - pad_y,
+                               pad_x, IMG_WIDTH - image.shape[1] - pad_x, cv2.BORDER_CONSTANT, value=255)
+    return image
 
 
 def get_cropped(img):    
@@ -90,10 +102,7 @@ def get_cropped(img):
     y_max = max(box[1] + box[3] for box in text_boxes)
     
     cropped_image = img[y_min:y_max, x_min:x_max]
-    cv2.imwrite(f"cropped_{image}.png", cropped_image)
-    
-    img = cv2.imread(f"cropped_{image}.png", cv2.IMREAD_GRAYSCALE)
-    return img
+    return cropped_image
     
     _, img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
