@@ -42,7 +42,7 @@ def main():
                             validation_data = DF.load_next_batch(data_cat="val"),
                             validation_steps = ceil(len(DF.val_data[0])/DF.batch_size))
 
-    crnn_model.save("crnn_model2.h5")
+    # crnn_model.save("crnn_model2.h5")
     crnn_model.save_weights("crnn_weights2.h5")
     model = MG.build_model("save")
     model.load_weights("crnn_weights2.h5")

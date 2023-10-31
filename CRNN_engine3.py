@@ -4,7 +4,7 @@ from tensorflow.keras.layers import BatchNormalization, Dropout, Lambda, Reshape
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as BK
-from Datafeeder import DataFeeder
+from datafeeder3 import DataFeeder
 import cv2
 import numpy as np
 from PIL import Image
@@ -15,39 +15,45 @@ import xml.etree.ElementTree as ET
 import sys
 
 def main():
-    imgs_dir = sys.argv[1]
-    labels_dir = sys.argv[2]
+    data_dir = sys.argv[1]
+    # labels_dir = sys.argv[2]
 
-    DF = DataFeeder(170, 40, n = 35000, batch_size = 60, max_label_length = 36)
+    DF = DataFeeder(170, 32, n = 40000, batch_size = 60, max_label_length = 36)
     print("loading dataset...")
-    DF.load_dataset(imgs_dir = imgs_dir, labels_dir = labels_dir, train_size = 0.79, val_size = 0.20, test_size = 0.01)
+    # DF.load_dataset_by_xml(imgs_dir = imgs_dir, labels_dir = labels_dir, train_size = 0.84, val_size = 0.15, test_size = 0.01)
+    DF.load_dataset_by_csv(data_dir, "train", "validation", "test", "train.csv", "val.csv", "test.csv",
+                         train_size = 0.84, val_size = 0.15, test_size = 0.01)
     print("Data loading done!")
     print("train_length = equal: ", len(DF.train_data[0]) == len(DF.train_data[1]))
     print("val_length = equal: ", len(DF.val_data[0]) == len(DF.val_data[1]))
     print("test_length = equal: ", len(DF.test_data[0]) == len(DF.test_data[1]))
 
+    print("training length: ", len(DF.train_data[0]), ", ", len(DF.train_data[1]))
+    print("val length: ", len(DF.val_data[0]), ", ", len(DF.val_data[1]))
+    print("test length: ", len(DF.test_data[0]), ", ", len(DF.test_data[1]))
+
     print("\nBuilding model...\n")
-    MG = ModelGenerator(170, 40, len(DF.characters)+1, DF.max_label_length)
-    # crnn_model_input, Y_pred, crnn_model = MG.build_model("train")
-    # print(crnn_model.summary())
+    MG = ModelGenerator(170, 32, len(DF.characters)+1, DF.max_label_length)
+    crnn_model_input, Y_pred, crnn_model = MG.build_model("train")
+    print(crnn_model.summary())
 
     # test_func = BK.function([crnn_model_input], [Y_pred])
     # viz_cb_train = VizCallback(test_func, img_fetcher = DF.load_next_batch(data_cat="train"), is_train = True, batch_count = ceil(len(DF.train_data[0])/DF.batch_size))
     # viz_cb_val = VizCallback(test_func, img_fetcher = DF.load_next_batch(data_cat="val"), is_train = False, batch_count = ceil(len(DF.val_data[0])/DF.batch_size))
 
-    # print("compiling model...")
-    # crnn_model = MG.compile(crnn_model)
-    # print("training model...")
-    # crnn_model.fit_generator(generator = DF.load_next_batch(data_cat="train"),
-    #                         steps_per_epoch = ceil(len(DF.train_data[0])/DF.batch_size),
-    #                         epochs = 10,
-    #                         validation_data = DF.load_next_batch(data_cat="val"),
-    #                         validation_steps = ceil(len(DF.val_data[0])/DF.batch_size))
+    print("compiling model...")
+    crnn_model = MG.compile(crnn_model)
+    print("training model...")
+    crnn_model.fit_generator(generator = DF.load_next_batch(data_cat="train"),
+                            steps_per_epoch = ceil(len(DF.train_data[0])/DF.batch_size),
+                            epochs = 15,
+                            validation_data = DF.load_next_batch(data_cat="val"),
+                            validation_steps = ceil(len(DF.val_data[0])/DF.batch_size))
 
-    # crnn_model.save_weights("crnn_weights.h5")
-    model = load_model("crnn_model.h5")
-    # model = MG.build_model("save")
-    # model.save("crnn_model.h5")
+    crnn_model.save_weights("crnn_weights.h5")
+    model = MG.build_model("save")
+    # model.save("crnn_model.keras")
+    # model = load_model("crnn_model.keras")
     model.load_weights("crnn_weights.h5")
 
     print("evaluating model...")
